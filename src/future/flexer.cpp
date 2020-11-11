@@ -12,12 +12,17 @@ void flexer::lex(fstate *state, fparser &parser) {
 void flexer::lex(fstate *state, std::vector<_ftoken*> &tokens) {
   std::stack<_ftoken*> fstack;
 
+  bool die = false;
   for (_ftoken *token : tokens) {
     // if it's an operator
     if (token->type >= _FPLUS) {
       switch(token->type) {
       case _FPLUS: {
         // todo error handling
+        if (fstack.size() < 2) {
+          die = true;
+          break;
+        }
         _ftoken* second_operand = fstack.top();
         fstack.pop();
         _ftoken* first_operand = fstack.top();
@@ -27,6 +32,23 @@ void flexer::lex(fstate *state, std::vector<_ftoken*> &tokens) {
         _27: switch (first_operand->type) {
         case _FINT32: {
           int32_t first_operand_val = *(int32_t *)first_operand->val;
+          if (second_operand->type == _FID) {
+            // todo stop assuming dEFINED
+            std::string second_operand_val = *(std::string *)second_operand->val;
+            if (!state->definitions.count(second_operand_val)) {
+              // error
+              die = true;
+              break;
+            }
+            _ftoken *definition = state->definitions[second_operand_val];
+            second_operand->type = definition->type;
+            second_operand->val = definition->val;
+          }
+          if (second_operand->type != _FINT32) {
+            // error!
+            fstack.push(new _ftoken());
+            break;
+          }
           int32_t second_operand_val = *(int32_t *)second_operand->val;
           int32_t *result = new int32_t(first_operand_val + second_operand_val);
           fstack.push(new _ftoken(result));
@@ -46,6 +68,11 @@ void flexer::lex(fstate *state, std::vector<_ftoken*> &tokens) {
         case _FID: {
           // todo stop assuming its defined
           std::string first_operand_val = *(std::string *)first_operand->val;
+          if (!state->definitions.count(first_operand_val)) {
+            // error
+            die = true;
+            break;
+          }
           _ftoken *definition = state->definitions[first_operand_val];
           first_operand->type = definition->type;
           first_operand->val = definition->val;
@@ -59,6 +86,10 @@ void flexer::lex(fstate *state, std::vector<_ftoken*> &tokens) {
       }
       case _FMINUS: {
         // todo error handling
+        if (fstack.size() < 2) {
+          die = true;
+          break;
+        }
         _ftoken* second_operand = fstack.top();
         fstack.pop();
         _ftoken* first_operand = fstack.top();
@@ -68,6 +99,23 @@ void flexer::lex(fstate *state, std::vector<_ftoken*> &tokens) {
         _60: switch (first_operand->type) {
         case _FINT32: {
           int32_t first_operand_val = *(int32_t *)first_operand->val;
+          if (second_operand->type == _FID) {
+            // todo stop assuming dEFINED
+            std::string second_operand_val = *(std::string *)second_operand->val;
+            if (!state->definitions.count(second_operand_val)) {
+              // error
+              die = true;
+              break;
+            }
+            _ftoken *definition = state->definitions[second_operand_val];
+            second_operand->type = definition->type;
+            second_operand->val = definition->val;
+          }
+          if (second_operand->type != _FINT32) {
+            // error!
+            fstack.push(new _ftoken());
+            break;
+          }
           int32_t second_operand_val = *(int32_t *)second_operand->val;
           int32_t *result = new int32_t(first_operand_val - second_operand_val);
           fstack.push(new _ftoken(result));
@@ -78,6 +126,11 @@ void flexer::lex(fstate *state, std::vector<_ftoken*> &tokens) {
         case _FID: {
           // todo stop assuming its defined
           std::string first_operand_val = *(std::string *)first_operand->val;
+          if (!state->definitions.count(first_operand_val)) {
+            // error
+            die = true;
+            break;
+          }
           _ftoken *definition = state->definitions[first_operand_val];
           first_operand->type = definition->type;
           first_operand->val = definition->val;
@@ -91,6 +144,10 @@ void flexer::lex(fstate *state, std::vector<_ftoken*> &tokens) {
       }
       case _FEQUALS: {
         // todo error handling for empty stack
+        if (fstack.size() < 2) {
+          die = true;
+          break;
+        }
         _ftoken* second_operand = fstack.top();
         fstack.pop();
         _ftoken* first_operand = fstack.top();
@@ -104,12 +161,42 @@ void flexer::lex(fstate *state, std::vector<_ftoken*> &tokens) {
         // delete second_operand;
         break;
       }
+      case _FPRINT: {
+        if (fstack.size() < 1) {
+          die = true;
+          break;
+        }
+        _ftoken* first_operand = fstack.top();
+        fstack.pop();
+        if (first_operand->type == _FID) {
+          std::string first_operand_val = *(std::string *)first_operand->val;
+          if (!state->definitions.count(first_operand_val)) {
+            die = true;
+            break;
+          }
+          _ftoken *definition = state->definitions[first_operand_val];
+          first_operand->type = definition->type;
+          first_operand->val = definition->val;
+        }
+        std::cout << first_operand->valstr() << std::endl;
+        break;
+      }
+      case _FINPUT: {
+        std::string *in = new std::string("");
+        std::getline(std::cin, *in);
+        _ftoken *token = new _ftoken(in);
+        fstack.push(token);
+        break;
+      }
       default:
         break;
       }
     } else {
       fstack.push(token);
     }
+
+    if (die)
+      break;
   }
 
   tokens.clear();

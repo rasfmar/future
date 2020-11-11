@@ -10,6 +10,8 @@ enum _FTYPE {
   _FPLUS,
   _FMINUS,
   _FEQUALS,
+  _FPRINT,
+  _FINPUT,
 };
 
 #endif

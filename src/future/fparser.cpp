@@ -42,7 +42,7 @@ void fparser::parse() {
   for(size_t char_index = 0; char_index < src.length(); char_index++) {
     char chr = src[char_index];
     if (string_flag) {
-      if ((chr == '"' || chr == '\'') || (_FDEBUG && chr == '\0')) {
+      if (chr == '"' || (_FDEBUG && chr == '\0')) {
         // build,
         std::string *str = new std::string(token_builder.str());
         _ftoken *fstr = new _ftoken(str);
@@ -66,7 +66,7 @@ void fparser::parse() {
         token_builder << chr;
       }
     } else if (id_flag) {
-      if (!isalnum(chr) || (_FDEBUG && chr == '\0')) {
+      if (!isalpha(chr) || (_FDEBUG && chr == '\0')) {
         std::string *id = new std::string(token_builder.str());
         _ftoken *fid = new _ftoken(_FID, id);
         this->tokens.push_back(fid);
@@ -92,7 +92,15 @@ void fparser::parse() {
         _ftoken *fequals = new _ftoken(_FEQUALS);
         this->tokens.push_back(fequals);
         token_builder.str("");
-      } else if (chr == '"' || chr == '\'') {
+      } else if (chr == '!') {
+        _ftoken *fprint = new _ftoken(_FPRINT);
+        this->tokens.push_back(fprint);
+        token_builder.str("");
+      } else if (chr == '~') {
+        _ftoken *finput = new _ftoken(_FINPUT);
+        this->tokens.push_back(finput);
+        token_builder.str("");
+      } else if (chr == '"') {
         string_flag = true;
         // don't include quote
         // token_builder << chr;
